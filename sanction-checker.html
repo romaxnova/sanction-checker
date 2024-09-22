@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanctioned Address Checker</title>
+</head>
+<body>
+
+    <h2>Check if a Wallet Address is Sanctioned</h2>
+
+    <form id="sanction-checker-form">
+        <label for="walletAddress">Enter Wallet Address:</label>
+        <input type="text" id="walletAddress" name="walletAddress" placeholder="0x..." required>
+        <button type="submit">Check Address</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+    <script>
+        document.getElementById('sanction-checker-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const rpcurl = "https://mainnet.infura.io/v3/53860d21af614ed197de744c4da042bb";  // Replace with your actual Infura RPC URL
+            const web3 = new Web3(rpcurl);
+            const abi = [
+                {
+                    "inputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "constructor"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {
+                            "indexed": true,
+                            "internalType": "address",
+                            "name": "addr",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "NonSanctionedAddress",
+                    "type": "event"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {
+                            "indexed": true,
+                            "internalType": "address",
+                            "name": "previousOwner",
+                            "type": "address"
+                        },
+                        {
+                            "indexed": true,
+                            "internalType": "address",
+                            "name": "newOwner",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "OwnershipTransferred",
+                    "type": "event"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {
+                            "indexed": true,
+                            "internalType": "address",
+                            "name": "addr",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "SanctionedAddress",
+                    "type": "event"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {
+                            "indexed": false,
+                            "internalType": "address[]",
+                            "name": "addrs",
+                            "type": "address[]"
+                        }
+                    ],
+                    "name": "SanctionedAddressesAdded",
+                    "type": "event"
+                },
+                {
+                    "anonymous": false,
+                    "inputs": [
+                        {
+                            "indexed": false,
+                            "internalType": "address[]",
+                            "name": "addrs",
+                            "type": "address[]"
+                        }
+                    ],
+                    "name": "SanctionedAddressesRemoved",
+                    "type": "event"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address[]",
+                            "name": "newSanctions",
+                            "type": "address[]"
+                        }
+                    ],
+                    "name": "addToSanctionsList",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "addr",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "isSanctioned",
+                    "outputs": [
+                        {
+                            "internalType": "bool",
+                            "name": "",
+                            "type": "bool"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "addr",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "isSanctionedVerbose",
+                    "outputs": [
+                        {
+                            "internalType": "bool",
+                            "name": "",
+                            "type": "bool"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "name",
+                    "outputs": [
+                        {
+                            "internalType": "string",
+                            "name": "",
+                            "type": "string"
+                        }
+                    ],
+                    "stateMutability": "pure",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "owner",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address[]",
+                            "name": "removeSanctions",
+                            "type": "address[]"
+                        }
+                    ],
+                    "name": "removeFromSanctionsList",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "renounceOwnership",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "newOwner",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "transferOwnership",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }
+            ];
+            const contract_address = "0x40c57923924b5c5c5455c48d93317139addac8fb";
+            const contract = new web3.eth.Contract(abi, contract_address);
+
+            const walletAddress = document.getElementById('walletAddress').value;
+
+            contract.methods.isSanctioned(walletAddress).call((err, result) => {
+                const resultDiv = document.getElementById('result');
+                if (err) {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${err.message}</p>`;
+                } else {
+                    if (result) {
+                        resultDiv.innerHTML = `<p style="color: red;">This address is sanctioned.</p>`;
+                    } else {
+                        resultDiv.innerHTML = `<p style="color: green;">This address is not sanctioned.</p>`;
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
